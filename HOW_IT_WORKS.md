@@ -44,6 +44,18 @@ LOOK-DGC provides different categories of analysis tools:
 **Why use them:** Start here to understand what you're investigating
 
 ---
+### 🤖 AI Solutions (TruFor)
+
+In addition to traditional forensic analysis categories, LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**.
+
+**TruFor** applies deep learning–based approaches to:
+- Identify potential image manipulations
+- Analyze complex forgery patterns that may not be easily captured by handcrafted forensic features
+- Provide confidence-based assessments rather than absolute decisions
+
+These AI-driven results are intended to **complement**, not replace, classical forensic methods. Users should interpret TruFor outputs in conjunction with other analysis tools for reliable conclusions.
+
+----
 
 ### 📋 **Metadata Analysis** - Hidden Information
 **What they do:** Extract secret data embedded in images

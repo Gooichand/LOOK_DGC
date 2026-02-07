@@ -79,6 +79,18 @@ Launch-LOOK-DGC.bat
 - **📊 Export Capabilities**: Visual and textual result export
 - **❓ Built-in Help**: Comprehensive tutorials and explanations
 
+
+### 🤖 AI Solutions (TruFor)
+
+LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**, an AI-based image forensic tool.
+
+**TruFor** is designed to:
+- Detect image manipulations using deep learning methods
+- Complement traditional forensic tools with data-driven analysis
+- Provide probabilistic insights rather than deterministic decisions
+
+⚠️ **Note:** AI-based results may have limitations depending on image quality, dataset bias, and model assumptions. TruFor outputs should be interpreted alongside traditional forensic analyses.
+
 ### 🛠️ **Analysis Tools**
 
 <details>
