@@ -254,6 +254,13 @@ class ComparisonWidget(ToolWidget):
         self.gray_check.stateChanged.connect(self.change)
         self.equalize_check.stateChanged.connect(self.change)
         self.ssim_radio.clicked.connect(self.change)
+
+# NOTE:
+# For tools using multiple ImageViewer instances,
+# bidirectional viewChanged → changeView connections
+# are required to keep zoom/pan synchronized.
+# ComparisonWidget serves as the reference implementation.
+
         self.evidence_viewer.viewChanged.connect(self.reference_viewer.changeView)
         self.reference_viewer.viewChanged.connect(self.evidence_viewer.changeView)
         self.metric_button.clicked.connect(self.metrics)
