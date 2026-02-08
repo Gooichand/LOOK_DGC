@@ -178,38 +178,38 @@ LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**, an AI-bas
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="demo-ss/0_gen.png" alt="General Tools" width="800"/>
+  <img src="Demo-Ss/0_gen.png" alt="General Tools" width="800"/>
   <br><b>📋 General Tools</b>: Original Image, File Digest, Hex Editor, Similar Search
 </p>
 
 
 <p align="center">
-  <img src="demo-ss/2_ins.png" alt="Visual Inspection" width="800"/>
+  <img src="Demo-Ss/2_ins.png" alt="Visual Inspection" width="800"/>
   <br><b>🔬 Visual Inspection</b>: Magnifier, Histogram, Reference Comparison
 </p>
 
 <p align="center">
-  <img src="demo-ss/3_detai.png" alt="Detail Analysis" width="800"/>
+  <img src="Demo-Ss/3_detai.png" alt="Detail Analysis" width="800"/>
   <br><b>🎯 Detail Analysis</b>: Gradient, Edge Filter, Wavelet, Frequency Split
 </p>
 
 <p align="center">
-  <img src="demo-ss/4_clour.png" alt="Color Analysis" width="800"/>
+  <img src="Demo-Ss/4_clour.png" alt="Color Analysis" width="800"/>
   <br><b>🎨 Color Analysis</b>: RGB/HSV Plots, Space Conversion, PCA, Statistics
 </p>
 
 <p align="center">
-  <img src="demo-ss/5_noise.png" alt="Noise Analysis" width="800"/>
+  <img src="Demo-Ss/5_noise.png" alt="Noise Analysis" width="800"/>
   <br><b>📡 Noise Analysis</b>: Noise Separation, Min/Max Deviation, Bit Planes
 </p>
 
 <p align="center">
-  <img src="demo-ss/6_jpeg.png" alt="JPEG Analysis" width="800"/>
+  <img src="Demo-Ss/6_jpeg.png" alt="JPEG Analysis" width="800"/>
   <br><b>📷 JPEG Analysis</b>: Quality Estimation, Error Level Analysis
 </p>
 
 <p align="center">
-  <img src="demo-ss/7_tampe.png" alt="Tampering Detection" width="800"/>
+  <img src="Demo-Ss/7_tampe.png" alt="Tampering Detection" width="800"/>
   <br><b>⚠️ Tampering Detection</b>: Copy-Move, Splicing, Resampling, Filtering
 </p>
 
