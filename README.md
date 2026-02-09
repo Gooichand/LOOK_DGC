@@ -17,7 +17,7 @@
 
 - [🎯 Introduction](#-introduction)
 - [🚀 Quick Start](#-quick-start)
-- [⚡ Features](#-features)Launch-LOOK-DGC.bat
+- [⚡ Features](#-features)
 - [📸 Screenshots](#-screenshots)
 - [💻 Installation](#-installation)
 - [🐳 Docker Setup](#-docker-setup)
