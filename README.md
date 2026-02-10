@@ -173,6 +173,17 @@ LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**, an AI-bas
 
 </details>
 
+### 📄 **PDF Report Generation**
+
+LOOK-DGC supports generating detailed PDF reports from analysis tools that provide structured data. The following tools include PDF export capabilities:
+
+- **📷 Original Image**: Baseline image display with metadata summary
+- **📊 Histogram Analysis**: Statistical data, channel information, and histogram plot visualization
+- **🏗️ Header Structure**: File header analysis summary and metadata overview
+- **🔊 Noise Analysis**: Noise estimation parameters, processing settings, and processed image
+
+To generate a PDF report, select the desired analysis tools and use the "Generate Report" option from the File menu.
+
 ---
 
 ## 📸 Screenshots
