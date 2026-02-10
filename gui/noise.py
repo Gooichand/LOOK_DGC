@@ -127,3 +127,29 @@ class NoiseWidget(ToolWidget):
             result = cv.cvtColor(result, cv.COLOR_GRAY2BGR)
         self.viewer.update_processed(result)
         self.info_message.emit(self.tr(f"Noise estimation = {elapsed_time(start)}"))
+
+    def get_report_data(self):
+        """Return data for PDF report generation"""
+        mode = self.mode_combo.currentText()
+        radius = self.radius_spin.value()
+        sigma = self.sigma_spin.value()
+        levels = self.levels_spin.value()
+        grayscale = self.gray_check.isChecked()
+        denoised = self.denoised_check.isChecked()
+
+        text = f"Noise Analysis Results:\n"
+        text += f"Mode: {mode}\n"
+        text += f"Radius: {radius} px\n"
+        text += f"Sigma: {sigma}\n"
+        text += f"Levels: {levels}\n"
+        text += f"Grayscale: {'Yes' if grayscale else 'No'}\n"
+        text += f"Denoised: {'Yes' if denoised else 'No'}"
+
+        # Get the processed image for the report
+        processed_image = self.viewer.processed
+        if processed_image is not None:
+            return {
+                'text': text,
+                'image': processed_image
+            }
+        return {'text': text}

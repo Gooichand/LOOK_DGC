@@ -81,10 +81,20 @@ class HeaderWidget(ToolWidget):
     def on_error(self, error_msg):
         error_label = QLabel(f"Error loading header: {error_msg}")
         error_label.setStyleSheet("color: red;")
-        
+
         layout = self.layout()
         while layout.count():
             child = layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
         layout.addWidget(error_label)
+
+    def get_report_data(self):
+        """Return data for PDF report generation"""
+        text = "File Header Analysis:\n"
+        text += "Analyzes the file header structure using ExifTool.\n"
+        text += "Provides detailed metadata and header information in HTML format."
+
+        # Since header analysis is HTML-based, we return text summary
+        # The actual HTML content is displayed in the widget but not easily extractable for PDF
+        return {'text': text}

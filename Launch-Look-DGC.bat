@@ -1,4 +1,5 @@
 @echo off
+@setlocal enabledelayedexpansion
 title LOOK-DGC Launcher
 echo ================================================
 echo   LOOK-DGC - Digital Image Forensics Toolkit
@@ -22,6 +23,26 @@ if not exist "gui" (
     pause
     exit /b 1
 )
+
+REM Check and install dependencies
+REM First validate dependencies, then install if needed
+echo Validating dependencies...
+cd gui
+
+python ../validate_deps.py
+if errorlevel 1 (
+    echo Some dependencies are missing. Attempting to install...
+    python ../check_deps.py
+    if errorlevel 1 (
+        echo Warning: Some dependencies may have failed to install
+        echo Continuing with launch attempt...
+        echo If you encounter issues, try installing dependencies manually:
+        echo   pip install -r gui/requirements.txt
+        echo.
+    )
+)
+
+cd ..
 
 REM Launch LOOK-DGC
 echo Starting LOOK-DGC...
