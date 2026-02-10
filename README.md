@@ -174,6 +174,29 @@ LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**, an AI-bas
 </details>
 
 ---
+---
+
+## 📁 Project Structure
+
+Below is an overview of the main folders and files in the LOOK-DGC repository to help new contributors understand the codebase easily:
+
+```text
+LOOK-DGC/
+├── gui/                  # Main GUI application source code
+│   ├── modules/          # Core forensic analysis modules
+│   └── ui/               # Qt UI layouts and components
+├── images/               # Sample input images
+├── output/               # Generated analysis results
+├── demo-ss/              # Screenshots for README
+├── docker/               # Docker configuration files
+├── Launch-LOOK-DGC.bat   # Windows launcher
+├── launch-look-dgc.sh    # Linux/macOS launcher
+├── docker-compose.yml    # Docker Compose config
+├── Dockerfile            # Docker build file
+├── LICENSE               # MIT License
+├── README.md             # Project documentation
+└── HOW_IT_WORKS.md       # Forensic workflow explanation
+
 
 ## 📸 Screenshots
 
