@@ -102,7 +102,8 @@ class MainWindow(QMainWindow):
         help_action.setObjectName("help_action")
         help_action.setIcon(QIcon("icons/help.svg"))
         help_action.setCheckable(True)
-        help_action.setEnabled(False)
+        help_action.triggered.connect(self.show_help)
+
 
         load_action = QAction(self.tr("&Load image..."), self)
         load_action.setToolTip(self.tr("Load an image to analyze"))
@@ -467,7 +468,11 @@ class MainWindow(QMainWindow):
             self.mdi_area.setViewMode(QMdiArea.SubWindowView)
         self.findChild(QAction, "tile_action").setEnabled(not tabbed)
         self.findChild(QAction, "cascade_action").setEnabled(not tabbed)
-
+        
+    def show_help(self):
+        from help import show_help_dialog
+        show_help_dialog(self)
+    
     def show_about(self):
         message = f"<h2>{QApplication.applicationName()} {QApplication.applicationVersion()}</h2>"
         message += "<h3>A digital image forensic toolkit by Gopichand</h3>"

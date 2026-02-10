@@ -77,7 +77,8 @@ Launch-Look-DGC.bat
 - **⚡ Responsive Viewer**: Real-time pan, zoom, and navigation
 - **🔄 Interactive Analysis**: Live algorithm parameter adjustment
 - **📊 Export Capabilities**: Visual and textual result export
-- **❓ Built-in Help**: Comprehensive tutorials and explanations
+- **❓ Built-in Help**: 
+  Quick reference guide with links to full documentation
 
 
 ### 🤖 AI Solutions (TruFor)
