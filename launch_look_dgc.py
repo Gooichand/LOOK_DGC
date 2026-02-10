@@ -28,10 +28,10 @@ def main():
     online = check_internet()
     if online:
         print("  🌐 Status: Online - Full features available")
-        print("  📡 HexEd.it: Online + Offline cached ready")
+        print("  📡 Hex editor: Online (HexEd.it) + Offline built-in viewer ready")
     else:
-        print("  📡 Status: Offline - Cached features available")
-        print("  💾 HexEd.it: Offline ready (cached)")
+        print("  📡 Status: Offline - Limited features available")
+        print("  💾 Hex editor: Offline built-in viewer ready")
     print()
     
     # Change to the gui directory

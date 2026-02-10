@@ -1,11 +1,12 @@
 import os
 import sys
+from time import time
+
 try:
     import rawpy
     RAWPY_AVAILABLE = True
 except ImportError:
     RAWPY_AVAILABLE = False
-from time import time
 
 import cv2 as cv
 import numpy as np
