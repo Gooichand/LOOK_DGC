@@ -288,6 +288,18 @@ cd gui
 pip install -r requirements.txt
 ```
 
+Alternatively, you can use the automated dependency checker:
+
+```bash
+python check_deps.py
+```
+
+Or validate dependencies before launching:
+
+```bash
+python validate_deps.py
+```
+
 #### 4️⃣ Launch Application
 ```bash
 python look-dgc.py
