@@ -1,7 +1,7 @@
 import os
 import sys
 
-from PySide6.QtCore import Qt, QSettings, QTimer
+from PySide6.QtCore import Qt, QSettings
 from PySide6.QtGui import QKeySequence, QIcon, QAction
 from PySide6.QtWidgets import (
     QApplication,
@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QMdiSubWindow,
     QDockWidget,
     QMessageBox,
-    QProgressBar,
 )
 
 from adjust import AdjustWidget
@@ -47,9 +46,7 @@ try:
 except ImportError:
     SPLICING_AVAILABLE = False
     
-# TruFor is always available but shows setup message if not configured
 from trufor import TruForWidget
-TRUFOR_AVAILABLE = True
 
 from stats import StatsWidget
 from stereogram import StereoWidget
@@ -102,7 +99,7 @@ class MainWindow(QMainWindow):
         help_action.setObjectName("help_action")
         help_action.setIcon(QIcon("icons/help.svg"))
         help_action.setCheckable(True)
-        help_action.setEnabled(False)
+        help_action.triggered.connect(self.show_help)
 
         load_action = QAction(self.tr("&Load image..."), self)
         load_action.setToolTip(self.tr("Load an image to analyze"))
@@ -235,9 +232,6 @@ class MainWindow(QMainWindow):
         main_toolbar.addAction(cascade_action)
         main_toolbar.addAction(tabbed_action)
         main_toolbar.addAction(close_action)
-        # main_toolbar.addSeparator()
-        # main_toolbar.addAction(self.normal_action)
-        # main_toolbar.addAction(self.full_action)
         main_toolbar.setAllowedAreas(Qt.TopToolBarArea | Qt.BottomToolBarArea)
         main_toolbar.setObjectName("main_toolbar")
 
@@ -322,8 +316,6 @@ class MainWindow(QMainWindow):
                 self.recent_files = self.recent_files[: self.max_recent]
             self.update_recent()
         self.show_message(self.tr(f'Image "{basename}" successfully loaded'))
-
-        # FIXME: disable_bold della chiusura viene chiamato DOPO open_tool e nell'albero la voce NON diventa neretto
         self.mdi_area.closeAllSubWindows()
         self.open_tool(self.tree_widget.topLevelItem(0).child(0), None)
 
@@ -344,9 +336,8 @@ class MainWindow(QMainWindow):
                 return
 
         try:
-            # Show loading message
             self.show_message(f"Loading {item.text(0)}...")
-            QApplication.processEvents()  # Allow GUI to update
+            QApplication.processEvents()
             
             tool_widget = None
             if group == 0:
@@ -479,6 +470,10 @@ class MainWindow(QMainWindow):
 
     def show_message(self, message):
         self.statusBar().showMessage(message, 10000)
+
+    def show_help(self):
+        from help import show_help_dialog
+        show_help_dialog(self)
 
 
 if __name__ == "__main__":
