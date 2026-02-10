@@ -361,6 +361,59 @@ docker run -it --rm -e DISPLAY=host.docker.internal:0 look-dgc
 
 ---
 
+## 🧪 Testing
+
+LOOK-DGC includes automated tests to ensure code quality and functionality.
+
+### Running Tests
+
+#### Install Test Dependencies
+```bash
+# Navigate to tests directory
+cd tests
+
+# Install testing requirements
+pip install -r test_requirements.txt
+```
+
+#### Run Unit Tests
+```bash
+# Run all unit tests
+python -m pytest unit/ -v
+
+# Run with coverage report
+python -m pytest unit/ -v --cov=../gui --cov-report=html
+
+# Run specific test file
+python -m pytest unit/test_utility.py -v
+```
+
+#### Run Integration Tests
+```bash
+# Run integration tests
+python -m pytest integration/ -v
+```
+
+#### Run All Tests
+```bash
+# Run complete test suite
+python -m pytest -v
+```
+
+### Test Coverage
+Test coverage reports are generated in the `tests/htmlcov/` directory when running with `--cov-report=html`.
+
+### CI/CD
+GitHub Actions workflows automatically run tests on:
+- Every push to main and develop branches
+- Every pull request
+- Multiple operating systems (Ubuntu, Windows)
+- Multiple Python versions (3.11, 3.12)
+
+View test results and coverage on GitHub Actions.
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions from the community! Here's how you can help:
