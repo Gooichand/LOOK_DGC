@@ -297,3 +297,39 @@ class HistWidget(ToolWidget):
                     np.arange(start, end + 1), top, facecolor="y", alpha=alpha * 2
                 )
         self.axes.figure.canvas.draw()
+
+    def get_report_data(self):
+        """Return data for PDF report generation"""
+        channel = "Value"
+        if self.red_radio.isChecked():
+            channel = "Red"
+        elif self.green_radio.isChecked():
+            channel = "Green"
+        elif self.blue_radio.isChecked():
+            channel = "Blue"
+        elif self.rgb_radio.isChecked():
+            channel = "RGB"
+
+        text = f"Histogram Analysis Results:\n"
+        text += f"Channel: {channel}\n"
+        text += f"Range: {self.start_slider.value()} - {self.end_slider.value()}\n"
+        text += f"Smooth: {'Yes' if self.smooth_check.isChecked() else 'No'}\n"
+        text += f"Log scale: {'Yes' if self.log_check.isChecked() else 'No'}\n"
+        text += f"Grid: {'Yes' if self.grid_check.isChecked() else 'No'}\n"
+        text += f"Unique colors: {self.unique_colors}\n"
+        text += f"Unique ratio: {self.unique_ratio}%\n"
+
+        # Capture the plot as image for the report
+        import io
+        buf = io.BytesIO()
+        self.axes.figure.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        buf.seek(0)
+        import cv2
+        import numpy as np
+        plot_image = cv2.imdecode(np.frombuffer(buf.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+        buf.close()
+
+        return {
+            'text': text,
+            'image': plot_image
+        }
