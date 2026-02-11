@@ -1,0 +1,37 @@
+name: Basic Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-basic:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install minimal dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest numpy opencv-python-headless
+    
+    - name: Test basic imports
+      run: |
+        cd tests
+        python -c "import sys; sys.path.insert(0, '../gui'); import utility; print('Utility module imported successfully')"
+    
+    - name: Run basic tests
+      run: |
+        cd tests
+        python -m pytest unit/test_utility.py -v

@@ -17,7 +17,7 @@
 
 - [🎯 Introduction](#-introduction)
 - [🚀 Quick Start](#-quick-start)
-- [⚡ Features](#-features)Launch-LOOK-DGC.bat
+- [⚡ Features](#-features)
 - [📸 Screenshots](#-screenshots)
 - [💻 Installation](#-installation)
 - [🐳 Docker Setup](#-docker-setup)
@@ -61,7 +61,7 @@ git clone https://github.com/Gooichand/LOOK-DGC.git
 cd LOOK-DGC
 
 # Windows
-Launch-LOOK-DGC.bat
+Launch-Look-DGC.bat
 
 # Linux/macOS
 ./launch-look-dgc.sh
@@ -173,24 +173,41 @@ LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**, an AI-bas
 
 </details>
 
-### 📊 **Batch Analysis**
-LOOK-DGC supports batch processing of multiple images with parallel execution for efficient forensic analysis.
+### 📄 **PDF Report Generation**
 
-**Key Features:**
-- **🔄 Parallel Processing**: Concurrent analysis using ThreadPoolExecutor
-- **📈 Progress Tracking**: Real-time progress updates during batch operations
-- **📤 Multiple Exports**: PDF reports, CSV data, and JSON structured output
-- **🛡️ Error Handling**: Graceful handling of processing failures
-- **🔒 Thread Safety**: Proper Qt threading to prevent GUI blocking
+LOOK-DGC supports generating detailed PDF reports from analysis tools that provide structured data. The following tools include PDF export capabilities:
 
-**Usage:**
-1. Open the Batch Analysis tool from the tools panel
-2. Click "Load Multiple Images" to select images
-3. Choose analysis tools from the tree structure
-4. Click "Run Batch Analysis" to start parallel processing
-5. Monitor progress and export results in desired format
+- **📷 Original Image**: Baseline image display with metadata summary
+- **📊 Histogram Analysis**: Statistical data, channel information, and histogram plot visualization
+- **🏗️ Header Structure**: File header analysis summary and metadata overview
+- **🔊 Noise Analysis**: Noise estimation parameters, processing settings, and processed image
+
+To generate a PDF report, select the desired analysis tools and use the "Generate Report" option from the File menu.
 
 ---
+---
+
+## 📁 Project Structure
+
+Below is an overview of the main folders and files in the LOOK-DGC repository to help new contributors understand the codebase easily:
+
+```text
+LOOK-DGC/
+├── gui/                  # Main GUI application source code
+│   ├── modules/          # Core forensic analysis modules
+│   └── ui/               # Qt UI layouts and components
+├── images/               # Sample input images
+├── output/               # Generated analysis results
+├── demo-ss/              # Screenshots for README
+├── docker/               # Docker configuration files
+├── Launch-LOOK-DGC.bat   # Windows launcher
+├── launch-look-dgc.sh    # Linux/macOS launcher
+├── docker-compose.yml    # Docker Compose config
+├── Dockerfile            # Docker build file
+├── LICENSE               # MIT License
+├── README.md             # Project documentation
+└── HOW_IT_WORKS.md       # Forensic workflow explanation
+
 
 ## 📸 Screenshots
 
@@ -245,7 +262,7 @@ LOOK-DGC supports batch processing of multiple images with parallel execution fo
 ```cmd
 git clone https://github.com/Gooichand/LOOK-DGC.git
 cd LOOK-DGC
-Launch-LOOK-DGC.bat
+Launch-Look-DGC.bat
 ```
 
 #### Linux/macOS
@@ -280,6 +297,18 @@ source .venv/bin/activate
 ```bash
 cd gui
 pip install -r requirements.txt
+```
+
+Alternatively, you can use the automated dependency checker:
+
+```bash
+python check_deps.py
+```
+
+Or validate dependencies before launching:
+
+```bash
+python validate_deps.py
 ```
 
 #### 4️⃣ Launch Application
@@ -363,6 +392,59 @@ docker run -it --rm -e DISPLAY=host.docker.internal:0 look-dgc
 - **🎯 Practical Examples**: Try analyzing known edited vs. original images
 - **🔬 Algorithm Details**: Source code documentation and comments
 - **🌐 Community**: Join discussions and contribute improvements
+
+---
+
+## 🧪 Testing
+
+LOOK-DGC includes automated tests to ensure code quality and functionality.
+
+### Running Tests
+
+#### Install Test Dependencies
+```bash
+# Navigate to tests directory
+cd tests
+
+# Install testing requirements
+pip install -r test_requirements.txt
+```
+
+#### Run Unit Tests
+```bash
+# Run all unit tests
+python -m pytest unit/ -v
+
+# Run with coverage report
+python -m pytest unit/ -v --cov=../gui --cov-report=html
+
+# Run specific test file
+python -m pytest unit/test_utility.py -v
+```
+
+#### Run Integration Tests
+```bash
+# Run integration tests
+python -m pytest integration/ -v
+```
+
+#### Run All Tests
+```bash
+# Run complete test suite
+python -m pytest -v
+```
+
+### Test Coverage
+Test coverage reports are generated in the `tests/htmlcov/` directory when running with `--cov-report=html`.
+
+### CI/CD
+GitHub Actions workflows automatically run tests on:
+- Every push to main and develop branches
+- Every pull request
+- Multiple operating systems (Ubuntu, Windows)
+- Multiple Python versions (3.11, 3.12)
+
+View test results and coverage on GitHub Actions.
 
 ---
 

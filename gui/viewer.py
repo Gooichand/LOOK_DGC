@@ -37,6 +37,7 @@ class DynamicView(QGraphicsView):
         self.mouse_pressed = False
         self.next_fit = False
         self.fit_scale = 0
+        self.is_fit_mode = False  # Track if user is in fit mode
         self.zoom_fit()
 
     def set_image(self, image):
@@ -59,6 +60,7 @@ class DynamicView(QGraphicsView):
     def zoom_full(self):
         self.set_scaling(1)
         self.next_fit = True
+        self.is_fit_mode = False
         self.notify_change()
 
     def zoom_fit(self):
@@ -69,6 +71,7 @@ class DynamicView(QGraphicsView):
             self.zoom_full()
         else:
             self.next_fit = False
+            self.is_fit_mode = True
             self.notify_change()
 
     def mousePressEvent(self, event):
@@ -101,11 +104,30 @@ class DynamicView(QGraphicsView):
             self.change_zoom(-1)
 
     def resizeEvent(self, event):
-        # FIXME: Se la finestra viene massimizzata, il valore di fit_scale non si aggiorna
-        if self.transform().m11() <= self.fit_scale:
-            self.zoom_fit()
-        else:
+        # FIXED: Always recalculate fit_scale when window is resized/maximized
+        # Store current zoom level before resize
+        current_scale = self.transform().m11()
+        
+        # Calculate what the new fit_scale would be for the new window size
+        self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
+        new_fit_scale = self.transform().m11()
+        if new_fit_scale > 1:
+            new_fit_scale = 1
+        
+        # Update fit_scale to the new value
+        self.fit_scale = new_fit_scale
+        
+        # If user was in fit mode OR current zoom is at/below the new fit scale,
+        # apply the new fit scale
+        if self.is_fit_mode or current_scale <= new_fit_scale:
+            # Keep the new fit scale (already set by fitInView above)
+            self.is_fit_mode = True
             self.notify_change()
+        else:
+            # User was zoomed in beyond fit - restore their zoom level
+            self.set_scaling(current_scale)
+            self.notify_change()
+        
         QGraphicsView.resizeEvent(self, event)
 
     def change_zoom(self, direction):
@@ -118,11 +140,15 @@ class DynamicView(QGraphicsView):
         if scaling < self.fit_scale:
             scaling = self.fit_scale
             self.next_fit = False
+            self.is_fit_mode = True
         elif scaling > 1:
             # scaling = 1
             if scaling > 4:
                 scaling = 4
             self.next_fit = True
+            self.is_fit_mode = False
+        else:
+            self.is_fit_mode = False
         self.set_scaling(scaling)
         self.notify_change()
 
