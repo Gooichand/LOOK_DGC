@@ -35,18 +35,48 @@ xhost +local:docker
 2. Start XQuartz and enable "Allow connections from network clients"
 3. Run: `xhost +localhost`
 
+## Platform-Specific Docker Usage
+
+This section provides clear guidance on running LOOK-DGC with Docker on different operating systems. Each platform requires a specific docker-compose file due to differences in X11 and networking support.
+
+### Linux
+**Command:**
+```bash
+docker-compose up --build
+```
+**Details:** Linux uses the default `docker-compose.yml` with `network_mode: host` for direct X11 socket support. This provides the most straightforward setup on Linux systems.
+
+### Windows
+**Command:**
+```cmd
+docker-compose -f docker-compose.windows.yml up --build
+```
+**Details:** Windows requires `docker-compose.windows.yml` for proper X11 forwarding via VcXsrv. Ensure VcXsrv is running before executing this command with the recommended settings from the Prerequisites section.
+
+### macOS
+**Command:**
+```bash
+docker-compose -f docker-compose.macos.yml up --build
+```
+**Details:** macOS requires `docker-compose.macos.yml` for compatibility with Docker Desktop. Ensure XQuartz is installed and running before executing this command.
+
 ## Quick Start
 
 ### Method 1: Docker Compose (Recommended)
 
 #### Windows
 ```cmd
-docker-compose -f docker-compose.windows.yml up
+docker-compose -f docker-compose.windows.yml up --build
 ```
 
-#### Linux/macOS
+#### Linux
 ```bash
-docker-compose up
+docker-compose up --build
+```
+
+#### macOS
+```bash
+docker-compose -f docker-compose.macos.yml up --build
 ```
 
 ### Method 2: Manual Docker Commands
