@@ -50,7 +50,8 @@
 git clone https://github.com/Gooichand/LOOK-DGC.git
 cd LOOK-DGC
 
-# For platform-specific Docker setup instructions, see DOCKER_README.md
+# Run with Docker Compose
+docker-compose up
 ```
 
 ### Option 2: Direct Installation
@@ -325,8 +326,57 @@ sudo apt install -y libxcb-cursor-dev
 
 ## 🐳 Docker Setup
 
-### � Docker Setup (See Detailed Guide)
-For Linux, Windows, and macOS, please refer to [DOCKER_README.md](DOCKER_README.md) for platform-specific Docker instructions.
+### 🚀 Quick Docker Start
+
+#### Windows
+```cmd
+# Install VcXsrv X Server first
+# Download: https://sourceforge.net/projects/vcxsrv/
+
+# Run LOOK-DGC
+docker-compose -f docker-compose.windows.yml up
+```
+
+#### Linux
+```bash
+# Allow X11 forwarding
+xhost +local:docker
+
+# Run LOOK-DGC
+docker-compose up
+```
+
+#### macOS
+```bash
+# Install XQuartz first
+# Download: https://www.xquartz.org/
+
+# Run LOOK-DGC
+docker-compose up
+```
+
+### 🔧 Manual Docker Commands
+
+#### Build Image
+```bash
+docker build -t look-dgc:latest .
+```
+
+#### Run Container
+```bash
+# Windows
+docker run -it --rm -e DISPLAY=host.docker.internal:0 look-dgc
+
+# Linux
+docker run -it --rm -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix look-dgc
+
+# macOS
+docker run -it --rm -e DISPLAY=host.docker.internal:0 look-dgc
+```
+
+### 📁 Volume Mounts
+- `./images:/app/images` - Input images
+- `./output:/app/output` - Analysis results
 
 ---
 
