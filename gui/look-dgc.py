@@ -1,7 +1,7 @@
 import os
 import sys
 
-from PySide6.QtCore import Qt, QSettings, QTimer
+from PySide6.QtCore import Qt, QSettings
 from PySide6.QtGui import QKeySequence, QIcon, QAction
 from PySide6.QtWidgets import (
     QApplication,
@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QMdiSubWindow,
     QDockWidget,
     QMessageBox,
-    QProgressBar,
 )
 
 from adjust import AdjustWidget
@@ -40,16 +39,13 @@ from quality import QualityWidget
 from reverse import ReverseWidget
 from space import SpaceWidget
 
-# Try to import tensorflow-dependent modules
 try:
     from splicing import SplicingWidget
     SPLICING_AVAILABLE = True
 except ImportError:
     SPLICING_AVAILABLE = False
-    
-# TruFor is always available but shows setup message if not configured
+
 from trufor import TruForWidget
-TRUFOR_AVAILABLE = True
 
 from stats import StatsWidget
 from stereogram import StereoWidget
@@ -96,14 +92,14 @@ class MainWindow(QMainWindow):
         tools_action.setObjectName("tools_action")
         tools_action.setIcon(QIcon("icons/tools.svg"))
 
-        help_action = QAction(self.tr("Show help"), self)
-        help_action.setToolTip(self.tr("Toggle online help"))
-        help_action.setShortcut(QKeySequence.HelpContents)
+        help_action = QAction(self.tr("Show help "), self)
+        help_action.setToolTip(self.tr("Toggle online help (F1)"))
+        help_action.setShortcut(QKeySequence(Qt.Key_F1))
+        help_action.setShortcutContext(Qt.ApplicationShortcut)
         help_action.setObjectName("help_action")
         help_action.setIcon(QIcon("icons/help.svg"))
-        help_action.setCheckable(True)
         help_action.triggered.connect(self.show_help)
-
+        self.addAction(help_action)
 
         load_action = QAction(self.tr("&Load image..."), self)
         load_action.setToolTip(self.tr("Load an image to analyze"))
@@ -141,17 +137,13 @@ class MainWindow(QMainWindow):
         next_action.setObjectName("next_action")
         next_action.setIcon(QIcon("icons/next.svg"))
 
-        tile_action = QAction(self.tr("&Tile"), self)
-        tile_action.setToolTip(self.tr("Arrange windows into non-overlapping views"))
-        tile_action.setShortcut(QKeySequence(Qt.Key_F11))
-        tile_action.triggered.connect(self.mdi_area.tileSubWindows)
+        tile_action = QAction(self.tr("&Tile\tF9"), self)
+        tile_action.setToolTip(self.tr("Arrange windows into non-overlapping views (F9)"))
         tile_action.setObjectName("tile_action")
         tile_action.setIcon(QIcon("icons/tile.svg"))
 
-        cascade_action = QAction(self.tr("&Cascade"), self)
-        cascade_action.setToolTip(self.tr("Arrange windows into overlapping views"))
-        cascade_action.setShortcut(QKeySequence(Qt.Key_F12))
-        cascade_action.triggered.connect(self.mdi_area.cascadeSubWindows)
+        cascade_action = QAction(self.tr("&Cascade\tF12"), self)
+        cascade_action.setToolTip(self.tr("Arrange windows into overlapping views (F12)"))
         cascade_action.setObjectName("cascade_action")
         cascade_action.setIcon(QIcon("icons/cascade.svg"))
 
@@ -162,19 +154,17 @@ class MainWindow(QMainWindow):
         close_action.setObjectName("close_action")
         close_action.setIcon(QIcon("icons/close.svg"))
 
-        self.full_action = QAction(self.tr("Full screen"), self)
-        self.full_action.setToolTip(self.tr("Switch to full screen mode"))
-        self.full_action.setShortcut(QKeySequence.FullScreen)
-        self.full_action.triggered.connect(self.change_view)
+        self.full_action = QAction(self.tr("Full screen\tF5"), self)
+        self.full_action.setToolTip(self.tr("Switch to full screen mode (F5)"))
         self.full_action.setObjectName("full_action")
         self.full_action.setIcon(QIcon("icons/full.svg"))
+        self.full_action.triggered.connect(self.change_view)
 
-        self.normal_action = QAction(self.tr("Normal view"), self)
-        self.normal_action.setToolTip(self.tr("Back to normal view mode"))
-        self.normal_action.setShortcut(QKeySequence(Qt.CTRL | Qt.Key_F12))
-        self.normal_action.triggered.connect(self.change_view)
+        self.normal_action = QAction(self.tr("Normal view\tF5"), self)
+        self.normal_action.setToolTip(self.tr("Back to normal view mode (F5)"))
         self.normal_action.setObjectName("normal_action")
         self.normal_action.setIcon(QIcon("icons/normal.svg"))
+        self.normal_action.triggered.connect(self.change_view)
 
         about_action = QAction(self.tr("&About..."), self)
         about_action.setToolTip(self.tr("Information about this program"))
@@ -236,9 +226,6 @@ class MainWindow(QMainWindow):
         main_toolbar.addAction(cascade_action)
         main_toolbar.addAction(tabbed_action)
         main_toolbar.addAction(close_action)
-        # main_toolbar.addSeparator()
-        # main_toolbar.addAction(self.normal_action)
-        # main_toolbar.addAction(self.full_action)
         main_toolbar.setAllowedAreas(Qt.TopToolBarArea | Qt.BottomToolBarArea)
         main_toolbar.setObjectName("main_toolbar")
 
@@ -264,6 +251,22 @@ class MainWindow(QMainWindow):
         self.showNormal()
         self.normal_action.setEnabled(False)
         self.show_message(self.tr("Ready"))
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_F1:
+            self.show_help()
+            event.accept()
+        elif event.key() == Qt.Key_F5:
+            self.change_view()
+            event.accept()
+        elif event.key() == Qt.Key_F9:
+            self.mdi_area.tileSubWindows()
+            event.accept()
+        elif event.key() == Qt.Key_F12:
+            self.mdi_area.cascadeSubWindows()
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
     def change_view(self):
         if self.isFullScreen():
@@ -323,8 +326,6 @@ class MainWindow(QMainWindow):
                 self.recent_files = self.recent_files[: self.max_recent]
             self.update_recent()
         self.show_message(self.tr(f'Image "{basename}" successfully loaded'))
-
-        # FIXME: disable_bold della chiusura viene chiamato DOPO open_tool e nell'albero la voce NON diventa neretto
         self.mdi_area.closeAllSubWindows()
         self.open_tool(self.tree_widget.topLevelItem(0).child(0), None)
 
@@ -345,10 +346,8 @@ class MainWindow(QMainWindow):
                 return
 
         try:
-            # Show loading message
             self.show_message(f"Loading {item.text(0)}...")
-            QApplication.processEvents()  # Allow GUI to update
-            
+            QApplication.processEvents()
             tool_widget = None
             if group == 0:
                 if tool == 0:
@@ -468,18 +467,30 @@ class MainWindow(QMainWindow):
             self.mdi_area.setViewMode(QMdiArea.SubWindowView)
         self.findChild(QAction, "tile_action").setEnabled(not tabbed)
         self.findChild(QAction, "cascade_action").setEnabled(not tabbed)
-        
+
     def show_help(self):
-        from help import show_help_dialog
-        show_help_dialog(self)
+        msg = QMessageBox(self)
+        msg.setWindowTitle("LOOK-DGC Help")
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("<h3>LOOK-DGC - Digital Image Forensics Toolkit</h3>")
+        msg.setInformativeText(
+            "<p><b>General Tools:</b> Original Image, File Digest, Hex Editor</p>"
+            "<p><b>Metadata Tools:</b> EXIF, Thumbnail, Geolocation</p>"
+            "<p><b>Inspection Tools:</b> Magnifier, Histogram, Comparison</p>"
+            "<p><b>Tampering Detection:</b> Copy-Move, Splicing, Resampling</p>"
+            "<p><b>Shortcuts:</b> F1=Help | Ctrl+O=Open | Tab=Tools</p>"
+        )
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.setWindowFlags(msg.windowFlags() | Qt.WindowStaysOnTopHint)
+        msg.exec()
     
     def show_about(self):
         message = f"<h2>{QApplication.applicationName()} {QApplication.applicationVersion()}</h2>"
         message += "<h3>A digital image forensic toolkit by Gopichand</h3>"
-        message += f'<p>Developed by: Gopichand</p>'
+        message += '<p>Developed by: Gopichand</p>'
         message += '<p>Project: LOOK-DGC - Digital Image Forensics Toolkit</p>'
-        message += '<p>license: <a href="https://opensource.org/licenses/MIT">MIT License</a></p>'
-        message += '<p>libraries: <a href="https://opencv.org/">OpenCV</a> <a href="https://exiftool.org/">ExifTool</a> <a href="https://www.tensorflow.org/">TensorFlow</a></p>'
+        message += '<p>License: <a href="https://opensource.org/licenses/MIT">MIT License</a></p>'
+        message += '<p>Libraries: <a href="https://opencv.org/">OpenCV</a> <a href="https://exiftool.org/">ExifTool</a> <a href="https://www.tensorflow.org/">TensorFlow</a></p>'
         QMessageBox.about(self, self.tr("About"), message)
 
     def show_message(self, message):
