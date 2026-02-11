@@ -542,10 +542,24 @@ class ComparisonWidget(ToolWidget):
 
     @staticmethod
     def psnr(x, y):
-        k = np.mean(np.square(x - y))
-        if k == 0:
-            return -1
-        return 20 * math.log10((255 ** 2) / k)
+        """
+        Compute Peak Signal-to-Noise Ratio (PSNR).
+
+        Standard definition:
+            PSNR = 10 * log10((MAX^2) / MSE)
+
+        where MAX = 255 for 8-bit images.
+        """
+        mse = np.mean(np.square(x - y))
+
+        if mse == 0:
+        # Identical images → infinite PSNR
+            return -1  # Handled as +∞ in UI
+
+        max_pixel = 255.0
+        return 10 * math.log10((max_pixel ** 2) / mse)
+
+
 
     @staticmethod
     def butter(x, y):
