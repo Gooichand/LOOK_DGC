@@ -285,6 +285,11 @@ class MainWindow(QMainWindow):
             self.normal_action.setEnabled(True)
 
     def closeEvent(self, event):
+        # Clean up any active threads or pools
+        if hasattr(self, 'batch_widget') and hasattr(self.batch_widget, 'thread_pool'):
+            self.batch_widget.thread_pool.clear()
+            self.batch_widget.thread_pool.waitForDone(5000)  # Wait up to 5 seconds
+
         settings = QSettings()
         settings.beginGroup("main_window")
         settings.setValue("geometry", self.saveGeometry())

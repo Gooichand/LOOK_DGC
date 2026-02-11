@@ -2,8 +2,9 @@ import os
 import threading
 import json
 import csv
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from PySide6.QtCore import Qt, Signal, QThread
+from PySide6.QtCore import Qt, Signal, QRunnable, QObject, QThreadPool
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QPushButton, QLabel, QProgressBar, QCheckBox, QGroupBox, QTextEdit,
@@ -71,6 +72,14 @@ class BatchAnalysisWidget(ToolWidget):
         self.selected_tools = []  # List of (group, tool) tuples
         self.results = {}  # Dict: image_basename -> {tool_name: data}
         self.executor = None
+        self.thread_pool = QThreadPool.globalInstance()
+        self.logger = logging.getLogger('batch_analysis')
+        self.logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        if not self.logger.handlers:
+            self.logger.addHandler(handler)
         self.init_ui()
 
     def init_ui(self):
@@ -214,11 +223,11 @@ class BatchAnalysisWidget(ToolWidget):
         self.status_label.setText("Running analysis...")
         self.run_btn.setEnabled(False)
 
-        # Run in thread to avoid freezing GUI
-        self.analysis_thread = AnalysisThread(self.images, self.selected_tools, self)
-        self.analysis_thread.progress.connect(self.update_progress)
-        self.analysis_thread.finished.connect(self.on_analysis_finished)
-        self.analysis_thread.start()
+        # Run in thread pool to avoid freezing GUI
+        self.analysis_runnable = AnalysisRunnable(self.images, self.selected_tools, self.logger)
+        self.analysis_runnable.progress.connect(self.update_progress)
+        self.analysis_runnable.finished.connect(self.on_analysis_finished)
+        self.thread_pool.start(self.analysis_runnable)
 
     def update_progress(self, value):
         self.progress_bar.setValue(value)
@@ -281,34 +290,54 @@ class BatchAnalysisWidget(ToolWidget):
             QMessageBox.information(self, "Exported", f"JSON saved to {output_path}")
 
 
-class AnalysisThread(QThread):
+class AnalysisRunnable(QObject, QRunnable):
     progress = Signal(int)
     finished = Signal(dict)
 
-    def __init__(self, images, selected_tools, parent=None):
-        super().__init__(parent)
+    def __init__(self, images, selected_tools, logger):
+        super().__init__()
         self.images = images
         self.selected_tools = selected_tools
+        self.logger = logger
         self.results = {}
 
     def run(self):
-        total = len(self.images) * len(self.selected_tools)
-        count = 0
-        for filename, basename, image in self.images:
-            self.results[basename] = {}
-            for group, tool in self.selected_tools:
-                tool_name = self.get_tool_name(group, tool)
+        total_tasks = len(self.images) * len(self.selected_tools)
+        completed_tasks = 0
+
+        with ThreadPoolExecutor(max_workers=min(8, total_tasks)) as executor:
+            futures = []
+            for filename, basename, image in self.images:
+                self.results[basename] = {}
+                for group, tool in self.selected_tools:
+                    future = executor.submit(self.process_tool, filename, basename, image, group, tool)
+                    futures.append(future)
+
+            for future in as_completed(futures):
                 try:
-                    widget = self.create_tool_widget(group, tool, filename, image)
-                    if widget and hasattr(widget, 'get_report_data'):
-                        data = widget.get_report_data()
-                        if data:
-                            self.results[basename][tool_name] = data
+                    result = future.result()
+                    if result:
+                        basename, tool_name, data = result
+                        self.results[basename][tool_name] = data
                 except Exception as e:
-                    self.results[basename][tool_name] = {'text': f"Error: {str(e)}"}
-                count += 1
-                self.progress.emit(count)
+                    self.logger.error(f"Error in parallel processing: {str(e)}")
+                completed_tasks += 1
+                if self.progress_signal:
+                    self.progress_signal.emit(completed_tasks)
+
         self.finished.emit(self.results)
+
+    def process_tool(self, filename, basename, image, group, tool):
+        tool_name = self.get_tool_name(group, tool)
+        try:
+            widget = self.create_tool_widget(group, tool, filename, image)
+            if widget and hasattr(widget, 'get_report_data'):
+                data = widget.get_report_data()
+                if data:
+                    return (basename, tool_name, data)
+        except Exception as e:
+            return (basename, tool_name, {'text': f"Error: {str(e)}"})
+        return None
 
     def get_tool_name(self, group, tool):
         # Map back to name

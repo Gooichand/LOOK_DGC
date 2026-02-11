@@ -173,6 +173,23 @@ LOOK-DGC includes an **AI Solutions** tool group featuring **TruFor**, an AI-bas
 
 </details>
 
+### 📊 **Batch Analysis**
+LOOK-DGC supports batch processing of multiple images with parallel execution for efficient forensic analysis.
+
+**Key Features:**
+- **🔄 Parallel Processing**: Concurrent analysis using ThreadPoolExecutor
+- **📈 Progress Tracking**: Real-time progress updates during batch operations
+- **📤 Multiple Exports**: PDF reports, CSV data, and JSON structured output
+- **🛡️ Error Handling**: Graceful handling of processing failures
+- **🔒 Thread Safety**: Proper Qt threading to prevent GUI blocking
+
+**Usage:**
+1. Open the Batch Analysis tool from the tools panel
+2. Click "Load Multiple Images" to select images
+3. Choose analysis tools from the tree structure
+4. Click "Run Batch Analysis" to start parallel processing
+5. Monitor progress and export results in desired format
+
 ---
 
 ## 📸 Screenshots
