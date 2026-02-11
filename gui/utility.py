@@ -272,6 +272,108 @@ def load_image(parent, filename=None):
     return filename, os.path.basename(filename), image
 
 
+def load_images(parent):
+    """Load multiple images and return a list of (filename, basename, image) tuples."""
+    settings = QSettings()
+    mime_filters = [
+        "image/jpeg",
+        "image/png",
+        "image/tiff",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "image/x-portable-pixmap",
+        "image/x-portable-graymap",
+        "image/x-portable-bitmap",
+        "image/x-nikon-nef",
+        "image/x-fuji-raf",
+        "image/x-canon-cr2",
+        "image/x-adobe-dng",
+        "image/x-sony-arw",
+        "image/x-kodak-dcr",
+        "image/x-minolta-mrw",
+        "image/x-pentax-pef",
+        "image/x-canon-crw",
+        "image/x-sony-sr2",
+        "image/x-olympus-orf",
+        "image/x-panasonic-raw",
+    ]
+    mime_db = QMimeDatabase()
+    mime_patterns = [
+        mime_db.mimeTypeForName(mime).globPatterns() for mime in mime_filters
+    ]
+    all_formats = f"Supported formats ({' '.join([item for sub in mime_patterns for item in sub])})"
+    raw_exts = [p[-3:] for p in mime_patterns][-12:]
+    dialog = QFileDialog(
+        parent, parent.tr("Load images"), settings.value("load_folder")
+    )
+    dialog.setOption(QFileDialog.DontUseNativeDialog, True)
+    dialog.setFileMode(QFileDialog.ExistingFiles)  # Allow multiple selection
+    dialog.setViewMode(QFileDialog.Detail)
+    dialog.setMimeTypeFilters(mime_filters)
+    name_filters = dialog.nameFilters()
+    dialog.setNameFilters(name_filters + [all_formats])
+    dialog.selectNameFilter(all_formats)
+    if dialog.exec_():
+        filenames = dialog.selectedFiles()
+    else:
+        return []
+
+    images = []
+    for filename in filenames:
+        ext = os.path.splitext(filename)[1][1:].lower()
+        if ext in raw_exts:
+            if RAWPY_AVAILABLE:
+                with rawpy.imread(filename) as raw:
+                    image = cv.cvtColor(
+                        raw.postprocess(
+                            no_auto_bright=True,
+                            use_camera_wb=True,
+                        ),
+                        cv.COLOR_RGB2BGR,
+                    )
+            else:
+                QMessageBox.warning(
+                    parent,
+                    parent.tr("Warning"),
+                    parent.tr("RAW image support not available. Please install rawpy or convert to JPEG/PNG first."),
+                )
+                continue
+        elif ext == "gif":
+            capture = cv.VideoCapture(filename)
+            frames = int(capture.get(cv.CAP_PROP_FRAME_COUNT))
+            if frames > 1:
+                QMessageBox.warning(
+                    parent,
+                    parent.tr("Warning"),
+                    parent.tr("Animated GIF: importing first frame"),
+                )
+            result, image = capture.read()
+            if not result:
+                QMessageBox.critical(
+                    parent, parent.tr("Error"), parent.tr("Unable to decode GIF!")
+                )
+                continue
+            if len(image.shape) == 2:
+                image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+        else:
+            image = cv.imread(filename, cv.IMREAD_COLOR)
+        if image is None:
+            QMessageBox.critical(
+                parent, parent.tr("Error"), parent.tr("Unable to load image!")
+            )
+            continue
+        if image.shape[2] > 3:
+            QMessageBox.warning(
+                parent, parent.tr("Warning"), parent.tr("Alpha channel discarded")
+            )
+            image = cv.cvtColor(image, cv.COLOR_BGRA2BGR)
+        images.append((filename, os.path.basename(filename), image))
+    if images:
+        settings.setValue("load_folder", QFileInfo(filenames[0]).absolutePath())
+    return images
+
+
 def desaturate(image):
     return cv.cvtColor(cv.cvtColor(image, cv.COLOR_BGR2GRAY), cv.COLOR_GRAY2BGR)
 

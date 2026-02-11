@@ -57,6 +57,7 @@ from wavelets import WaveletWidget
 from ghostmmaps import GhostmapWidget
 from resampling import ResamplingWidget
 from noise_estimmation import NoiseWaveletBlockingWidget
+from batch import BatchAnalysisWidget
 from report import generate_pdf_report
 
 class MainWindow(QMainWindow):
@@ -278,6 +279,11 @@ class MainWindow(QMainWindow):
             self.normal_action.setEnabled(True)
 
     def closeEvent(self, event):
+        # Clean up any active threads or pools
+        if hasattr(self, 'batch_widget') and hasattr(self.batch_widget, 'thread_pool'):
+            self.batch_widget.thread_pool.clear()
+            self.batch_widget.thread_pool.waitForDone(5000)  # Wait up to 5 seconds
+
         settings = QSettings()
         settings.beginGroup("main_window")
         settings.setValue("geometry", self.saveGeometry())
@@ -431,6 +437,9 @@ class MainWindow(QMainWindow):
                     tool_widget = MedianWidget(self.image)
                 elif tool == 3:
                     tool_widget = StereoWidget(self.image)
+            elif group == 10:
+                if tool == 0:
+                    tool_widget = BatchAnalysisWidget()
             
             if tool_widget is None:
                 return

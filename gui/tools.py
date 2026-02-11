@@ -266,6 +266,22 @@ class ToolTree(QTreeWidget):
         )
         tool_progress.extend([2, 0, 0, 3])
 
+        # [10]
+        group_names.append(self.tr("[Batch Processing]"))
+        tool_names.append(
+            [
+                self.tr("Batch Analysis"),
+            ]
+        )
+        tool_infos.append(
+            [
+                self.tr(
+                    "Process multiple images simultaneously with selected analysis tools"
+                ),
+            ]
+        )
+        tool_progress.extend([3])
+
         count = 0
         for i, group in enumerate(group_names):
             group_item = QTreeWidgetItem()

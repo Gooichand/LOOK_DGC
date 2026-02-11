@@ -179,3 +179,8 @@ class AdjustWidget(ToolWidget):
         self.invert_check.setChecked(False)
         self.blockSignals(False)
         self.process()
+
+    def get_report_data(self):
+        """Return data for PDF report generation"""
+        # Interactive adjustment tool - no reportable data
+        return None
