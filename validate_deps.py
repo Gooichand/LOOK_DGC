@@ -28,7 +28,8 @@ def get_required_packages() -> Dict[str, str]:
         'astor': 'astor',
         'concurrent-iterator': 'concurrent_iterator',
         'keras-applications': 'keras_applications',
-        'xgboost': 'xgboost'
+        'xgboost': 'xgboost',
+        'reportlab': 'reportlab'
     }
 
 def check_package(package_name: str, import_name: str) -> Tuple[bool, str]:

@@ -55,7 +55,8 @@ def check_dependencies_basic():
         'astor': 'astor',
         'concurrent-iterator': 'concurrent_iterator',
         'keras-applications': 'keras_applications',
-        'xgboost': 'xgboost'
+        'xgboost': 'xgboost',
+        'reportlab': 'reportlab'
     }
     
     # Try to import tensorflow (optional but important for some features)
