@@ -30,6 +30,7 @@ from utility import (
     desaturate,
     butter_exe,
     ssimul_exe,
+    psnrb as psnrb_func,
 )
 from viewer import ImageViewer
 
@@ -392,11 +393,7 @@ class ComparisonWidget(ToolWidget):
         progress.setValue(6)
         if self.stopped:
             return
-        try:
-            psnrb = sewar.psnrb(img1, img2)
-        except NameError:
-            # FIXME: C'\`e un bug in psnrb (https://github.com/andrewekhalel/sewar/issues/17)
-            psnrb = 0
+        psnrb = psnrb_func(img1, img2)
         progress.setValue(7)
         if self.stopped:
             return
