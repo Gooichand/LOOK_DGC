@@ -4,7 +4,7 @@ from time import time
 
 import cv2 as cv
 import numpy as np
-from PySide6.QtCore import Qt, QCoreApplication
+from PySide6.QtCore import Qt, QCoreApplication, QThread, Signal, QObject
 from PySide6.QtWidgets import (
     QToolButton,
     QMessageBox,
@@ -20,6 +20,230 @@ from PySide6.QtWidgets import (
 from tools import ToolWidget
 from utility import elapsed_time, modify_font, load_image
 from viewer import ImageViewer
+
+
+class CloningWorker(QThread):
+    finished_signal = Signal(dict)
+    error_signal = Signal(str)
+    status_signal = Signal(str)
+    progress_signal = Signal(int)
+    progress_range_signal = Signal(int)
+
+    def __init__(self, params, current_data):
+        super().__init__()
+        self.params = params
+        self.data = current_data
+        self._is_canceled = False
+
+    def cancel(self):
+        self._is_canceled = True
+
+    def run(self):
+        try:
+            start_time = time()
+            self.status_signal.emit(self.params["status_text"])
+
+            algorithm = self.params["algorithm"]
+            response_val = self.params["response"]
+            matching_val = self.params["matching"]
+            distance_val = self.params["distance"]
+            cluster_val = self.params["cluster"]
+            
+            gray = self.data["gray"]
+            mask_img = self.data["mask"]
+            use_mask = self.data["use_mask"]
+            
+            kpts = self.data["kpts"]
+            desc = self.data["desc"]
+            matches = self.data["matches"]
+            clusters = self.data["clusters"]
+            total_kpts = self.data["total"]
+
+            # Keypoint Detection
+            if kpts is None:
+                if algorithm == 0:
+                    detector = cv.BRISK_create()
+                elif algorithm == 1:
+                    detector = cv.ORB_create()
+                elif algorithm == 2:
+                    detector = cv.AKAZE_create()
+                else:
+                    return
+
+                detection_mask = mask_img if use_mask else None
+                kpts, desc = detector.detectAndCompute(gray, detection_mask)
+                total_kpts = len(kpts)
+                
+                if total_kpts > 0:
+                    responses = np.array([k.response for k in kpts])
+                    strongest = (
+                        cv.normalize(responses, None, 0, 100, cv.NORM_MINMAX) >= response_val
+                    ).flatten()
+                    kpts = list(compress(kpts, strongest))
+                    if desc is not None:
+                        desc = desc[strongest]
+
+                if len(kpts) > 30000:
+                    self.error_signal.emit(f"Too many keypoints found ({total_kpts}), please reduce response value")
+                    # We should probably return here, but sending empty results might be better to reset state
+                    self.finished_signal.emit({
+                        "kpts": None,
+                        "desc": None,
+                        "matches": None,
+                        "clusters": None,
+                        "total": 0,
+                        "regions": 0,
+                        "elapsed": elapsed_time(start_time)
+                    })
+                    return
+
+            if self._is_canceled:
+                return
+
+            # Matching
+            if matches is None:
+                 if desc is not None and len(desc) > 0:
+                    matcher = cv.BFMatcher_create(cv.NORM_HAMMING, True)
+                    raw_matches = matcher.radiusMatch(desc, desc, matching_val)
+                    if raw_matches:
+                        matches = [item for sublist in raw_matches for item in sublist]
+                        matches = [m for m in matches if m.queryIdx != m.trainIdx]
+                    else:
+                        matches = []
+                 else:
+                    matches = []
+                
+                 if not matches:
+                    self.status_signal.emit("No keypoint match found with current settings")
+                    self.finished_signal.emit({
+                        "kpts": kpts,
+                        "desc": desc,
+                        "matches": [],
+                        "clusters": [],
+                        "total": total_kpts,
+                        "regions": 0,
+                        "elapsed": elapsed_time(start_time)
+                    })
+                    return
+
+            if self._is_canceled:
+                return
+
+            # Clustering
+            if not matches:
+                clusters = []
+            elif clusters is None:
+                clusters = []
+                min_dist = distance_val * np.min(gray.shape) / 2
+                kpts_a = np.array([p.pt for p in kpts])
+                ds = np.linalg.norm(
+                    [kpts_a[m.queryIdx] - kpts_a[m.trainIdx] for m in matches], axis=1
+                )
+                
+                # Pre-filter matches by distance
+                # We need to keep only matches that satisfy the distance condition
+                valid_indices = [i for i, d in enumerate(ds) if d > min_dist]
+                matches = [matches[i] for i in valid_indices]
+                ds = ds[valid_indices]
+
+                total_matches = len(matches)
+                self.progress_range_signal.emit(total_matches)
+                
+                for i in range(total_matches):
+                    if self._is_canceled:
+                        return
+                    
+                    self.progress_signal.emit(i)
+                    
+                    match0 = matches[i]
+                    d0 = ds[i]
+                    query0 = match0.queryIdx
+                    train0 = match0.trainIdx
+                    group = [match0]
+
+                    for j in range(i + 1, total_matches):
+                        match1 = matches[j]
+                        query1 = match1.queryIdx
+                        train1 = match1.trainIdx
+                        
+                        if query1 == train0 and train1 == query0:
+                            continue
+                        
+                        d1 = ds[j]
+                        if np.abs(d0 - d1) > min_dist:
+                            continue
+
+                        a0 = np.array(kpts[query0].pt)
+                        b0 = np.array(kpts[train0].pt)
+                        a1 = np.array(kpts[query1].pt)
+                        b1 = np.array(kpts[train1].pt)
+
+                        aa = np.linalg.norm(a0 - a1)
+                        bb = np.linalg.norm(b0 - b1)
+                        ab = np.linalg.norm(a0 - b1)
+                        ba = np.linalg.norm(b0 - a1)
+
+                        if not (
+                            0 < aa < min_dist
+                            and 0 < bb < min_dist
+                            or 0 < ab < min_dist
+                            and 0 < ba < min_dist
+                        ):
+                            continue
+                        
+                        for g in group:
+                            if g.queryIdx == train1 and g.trainIdx == query1:
+                                break
+                        else:
+                            group.append(match1)
+
+                    if len(group) >= cluster_val:
+                        clusters.append(group)
+
+            if self._is_canceled:
+                return
+
+            # Region analysis (Angles)
+            regions = 0
+            if clusters:
+                angles = []
+                for c in clusters:
+                    for m in c:
+                        ka = kpts[m.queryIdx]
+                        pb = kpts[m.trainIdx].pt
+                        pa = ka.pt
+                        angle = np.arctan2(pb[1] - pa[1], pb[0] - pa[0])
+                        if angle < 0:
+                            angle += np.pi
+                        angles.append(angle)
+                
+                if angles:
+                    angles = np.reshape(np.array(angles, dtype=np.float32), (len(angles), 1))
+                    if np.std(angles) < 0.1:
+                        regions = 1
+                    else:
+                        criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+                        attempts = 10
+                        flags = cv.KMEANS_PP_CENTERS
+                        compact = [
+                            cv.kmeans(angles, k, None, criteria, attempts, flags)[0]
+                            for k in range(1, 11)
+                        ]
+                        compact = cv.normalize(np.array(compact), None, 0, 1, cv.NORM_MINMAX)
+                        regions = np.argmax(compact < 0.005) + 1
+
+            self.finished_signal.emit({
+                "kpts": kpts,
+                "desc": desc,
+                "matches": matches,
+                "clusters": clusters,
+                "total": total_kpts,
+                "regions": regions,
+                "elapsed": elapsed_time(start_time)
+            })
+
+        except Exception as e:
+            self.error_signal.emit(str(e))
 
 
 class CloningWidget(ToolWidget):
@@ -86,14 +310,16 @@ class CloningWidget(ToolWidget):
             self.kpts
         ) = self.desc = self.matches = self.clusters = self.mask = None
         self.canceled = False
+        self.worker = None
+        self.progress_dialog = None
 
         self.detector_combo.currentIndexChanged.connect(self.update_detector)
         self.response_spin.valueChanged.connect(self.update_detector)
         self.matching_spin.valueChanged.connect(self.update_matching)
         self.distance_spin.valueChanged.connect(self.update_cluster)
         self.cluster_spin.valueChanged.connect(self.update_cluster)
-        self.nolines_check.stateChanged.connect(self.process)
-        self.kpts_check.stateChanged.connect(self.process)
+        self.nolines_check.stateChanged.connect(self.refresh_display)
+        self.kpts_check.stateChanged.connect(self.refresh_display)
         self.process_button.clicked.connect(self.process)
         self.mask_button.clicked.connect(self.load_mask)
         self.onoff_button.toggled.connect(self.toggle_mask)
@@ -171,188 +397,147 @@ class CloningWidget(ToolWidget):
 
     def cancel(self):
         self.canceled = True
+        if self.worker:
+            self.worker.cancel()
         self.status_label.setText(self.tr("Processing interrupted!"))
         modify_font(self.status_label, bold=False, italic=False)
+        self.process_button.setEnabled(True)
+        if self.progress_dialog:
+            self.progress_dialog.close()
+            self.progress_dialog = None
 
-    def process(self):
-        start = time()
-        self.canceled = False
-        self.status_label.setText(self.tr("Processing, please wait..."))
-        algorithm = self.detector_combo.currentIndex()
-        response = 100 - self.response_spin.value()
-        matching = self.matching_spin.value() / 100 * 255
-        distance = self.distance_spin.value() / 100
-        cluster = self.cluster_spin.value()
-        modify_font(self.status_label, bold=False, italic=True)
-        QCoreApplication.processEvents()
+    def on_worker_finished(self, results):
+        self.kpts = results["kpts"]
+        self.desc = results["desc"]
+        self.matches = results["matches"]
+        self.clusters = results["clusters"]
+        self.total = results["total"]
+        regions = results["regions"]
+        elapsed = results["elapsed"]
 
-        if self.kpts is None:
-            if algorithm == 0:
-                detector = cv.BRISK_create()
-            elif algorithm == 1:
-                detector = cv.ORB_create()
-            elif algorithm == 2:
-                detector = cv.AKAZE_create()
-            else:
-                return
-            mask = self.mask if self.onoff_button.isChecked() else None
-            self.kpts, self.desc = detector.detectAndCompute(self.gray, mask)
-            self.total = len(self.kpts)
-            responses = np.array([k.response for k in self.kpts])
-            strongest = (
-                cv.normalize(responses, None, 0, 100, cv.NORM_MINMAX) >= response
-            ).flatten()
-            self.kpts = list(compress(self.kpts, strongest))
-            if len(self.kpts) > 30000:
-                QMessageBox.warning(
-                    self,
-                    self.tr("Warning"),
-                    self.tr(
-                        f"Too many keypoints found ({self.total}), please reduce response value"
-                    ),
-                )
-                self.kpts = self.desc = None
-                self.total = 0
-                self.status_label.setText("")
-                return
-            self.desc = self.desc[strongest]
-
-        if self.matches is None:
-            matcher = cv.BFMatcher_create(cv.NORM_HAMMING, True)
-            self.matches = matcher.radiusMatch(self.desc, self.desc, matching)
-            if self.matches is None:
-                self.status_label.setText(
-                    self.tr("No keypoint match found with current settings")
-                )
-                modify_font(self.status_label, italic=False, bold=True)
-                return
-            self.matches = [item for sublist in self.matches for item in sublist]
-            self.matches = [m for m in self.matches if m.queryIdx != m.trainIdx]
-
-        if not self.matches:
-            self.clusters = []
-        elif self.clusters is None:
-            self.clusters = []
-            min_dist = distance * np.min(self.gray.shape) / 2
-            kpts_a = np.array([p.pt for p in self.kpts])
-            ds = np.linalg.norm(
-                [kpts_a[m.queryIdx] - kpts_a[m.trainIdx] for m in self.matches], axis=1
-            )
-            self.matches = [m for i, m in enumerate(self.matches) if ds[i] > min_dist]
-
-            total = len(self.matches)
-            progress = QProgressDialog(
-                self.tr("Clustering matches..."), self.tr("Cancel"), 0, total, self
-            )
-            progress.canceled.connect(self.cancel)
-            progress.setWindowModality(Qt.WindowModal)
-            for i in range(total):
-                match0 = self.matches[i]
-                d0 = ds[i]
-                query0 = match0.queryIdx
-                train0 = match0.trainIdx
-                group = [match0]
-
-                for j in range(i + 1, total):
-                    match1 = self.matches[j]
-                    query1 = match1.queryIdx
-                    train1 = match1.trainIdx
-                    if query1 == train0 and train1 == query0:
-                        continue
-                    d1 = ds[j]
-                    if np.abs(d0 - d1) > min_dist:
-                        continue
-
-                    a0 = np.array(self.kpts[query0].pt)
-                    b0 = np.array(self.kpts[train0].pt)
-                    a1 = np.array(self.kpts[query1].pt)
-                    b1 = np.array(self.kpts[train1].pt)
-
-                    aa = np.linalg.norm(a0 - a1)
-                    bb = np.linalg.norm(b0 - b1)
-                    ab = np.linalg.norm(a0 - b1)
-                    ba = np.linalg.norm(b0 - a1)
-
-                    if not (
-                        0 < aa < min_dist
-                        and 0 < bb < min_dist
-                        or 0 < ab < min_dist
-                        and 0 < ba < min_dist
-                    ):
-                        continue
-                    for g in group:
-                        if g.queryIdx == train1 and g.trainIdx == query1:
-                            break
-                    else:
-                        group.append(match1)
-
-                if len(group) >= cluster:
-                    self.clusters.append(group)
-                progress.setValue(i)
-                if self.canceled:
-                    self.update_detector()
-                    return
-            progress.close()
-
-        output = np.copy(self.image)
-        hsv = np.zeros((1, 1, 3))
-        nolines = self.nolines_check.isChecked()
-        show_kpts = self.kpts_check.isChecked()
-
-        if show_kpts:
-            for kpt in self.kpts:
-                cv.circle(output, (int(kpt.pt[0]), int(kpt.pt[1])), 2, (250, 227, 72))
-
-        angles = []
-        for c in self.clusters:
-            for m in c:
-                ka = self.kpts[m.queryIdx]
-                pa = tuple(map(int, ka.pt))
-                sa = int(np.round(ka.size))
-                kb = self.kpts[m.trainIdx]
-                pb = tuple(map(int, kb.pt))
-                sb = int(np.round(kb.size))
-                angle = np.arctan2(pb[1] - pa[1], pb[0] - pa[0])
-                if angle < 0:
-                    angle += np.pi
-                angles.append(angle)
-                hsv[0, 0, 0] = angle / np.pi * 180
-                hsv[0, 0, 1] = 255
-                hsv[0, 0, 2] = m.distance / matching * 255
-                rgb = cv.cvtColor(hsv.astype(np.uint8), cv.COLOR_HSV2BGR)
-                rgb = tuple([int(x) for x in rgb[0, 0]])
-                cv.circle(output, pa, sa, rgb, 1, cv.LINE_AA)
-                cv.circle(output, pb, sb, rgb, 1, cv.LINE_AA)
-                if not nolines:
-                    cv.line(output, pa, pb, rgb, 1, cv.LINE_AA)
-
-        regions = 0
-        if angles:
-            angles = np.reshape(np.array(angles, dtype=np.float32), (len(angles), 1))
-            if np.std(angles) < 0.1:
-                regions = 1
-            else:
-                criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-                attempts = 10
-                flags = cv.KMEANS_PP_CENTERS
-                compact = [
-                    cv.kmeans(angles, k, None, criteria, attempts, flags)[0]
-                    for k in range(1, 11)
-                ]
-                compact = cv.normalize(np.array(compact), None, 0, 1, cv.NORM_MINMAX)
-                regions = np.argmax(compact < 0.005) + 1
-        self.viewer.update_processed(output)
-        self.process_button.setEnabled(False)
+        self.refresh_display()
+        
+        self.process_button.setEnabled(True) 
+        
+        # Disable button if clusters are found, similar to original logic logic
+        if self.clusters and len(self.clusters) > 0:
+             self.process_button.setEnabled(False)
+             
+        # Also usage bold font for status label when finished
         modify_font(self.status_label, italic=False, bold=True)
+        
         self.status_label.setText(
             self.tr(
                 "Keypoints: {} --> Filtered: {} --> Matches: {} --> Clusters: {} --> Regions: {}".format(
                     self.total,
-                    len(self.kpts),
-                    len(self.matches),
-                    len(self.clusters),
+                    len(self.kpts) if self.kpts else 0,
+                    len(self.matches) if self.matches else 0,
+                    len(self.clusters) if self.clusters else 0,
                     regions,
                 )
             )
         )
-        self.info_message.emit(self.tr(f"Copy-Move Forgery = {elapsed_time(start)}"))
+        self.info_message.emit(self.tr(f"Copy-Move Forgery = {elapsed}"))
+        
+        if self.progress_dialog:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+
+    def on_worker_error(self, message):
+        QMessageBox.warning(self, self.tr("Warning"), self.tr(message))
+        self.process_button.setEnabled(True)
+        self.status_label.setText("")
+        if self.progress_dialog:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+        
+        # Reset state if error occurred during detection
+        if "Too many keypoints" in message:
+             self.kpts = self.desc = None
+             self.total = 0
+
+    def on_worker_status(self, text):
+        self.status_label.setText(self.tr(text))
+        
+    def on_worker_progress_range(self, total):
+        self.progress_dialog = QProgressDialog(
+                self.tr("Clustering matches..."), self.tr("Cancel"), 0, total, self
+        )
+        self.progress_dialog.canceled.connect(self.cancel)
+        self.progress_dialog.setWindowModality(Qt.WindowModal)
+        self.progress_dialog.show()
+
+    def on_worker_progress(self, value):
+        if self.progress_dialog:
+            self.progress_dialog.setValue(value)
+
+    def process(self):
+        self.canceled = False
+        self.process_button.setEnabled(False) 
+        modify_font(self.status_label, bold=False, italic=True)
+        
+        params = {
+            "algorithm": self.detector_combo.currentIndex(),
+            "response": 100 - self.response_spin.value(),
+            "matching": self.matching_spin.value() / 100 * 255,
+            "distance": self.distance_spin.value() / 100,
+            "cluster": self.cluster_spin.value(),
+            "status_text": "Processing, please wait..." 
+        }
+        
+        data = {
+            "gray": self.gray,
+            "mask": self.mask,
+            "use_mask": self.onoff_button.isChecked(),
+            "kpts": self.kpts,
+            "desc": self.desc,
+            "matches": self.matches,
+            "clusters": self.clusters,
+            "total": self.total
+        }
+
+        self.worker = CloningWorker(params, data)
+        self.worker.finished_signal.connect(self.on_worker_finished)
+        self.worker.error_signal.connect(self.on_worker_error)
+        self.worker.status_signal.connect(self.on_worker_status)
+        self.worker.progress_range_signal.connect(self.on_worker_progress_range)
+        self.worker.progress_signal.connect(self.on_worker_progress)
+        self.worker.start()
+
+    def refresh_display(self):
+        output = np.copy(self.image)
+        hsv = np.zeros((1, 1, 3))
+        nolines = self.nolines_check.isChecked()
+        show_kpts = self.kpts_check.isChecked()
+        matching_val = self.matching_spin.value() / 100 * 255
+
+        if show_kpts and self.kpts:
+            for kpt in self.kpts:
+                cv.circle(output, (int(kpt.pt[0]), int(kpt.pt[1])), 2, (250, 227, 72))
+
+        if self.clusters:
+            for c in self.clusters:
+                for m in c:
+                    ka = self.kpts[m.queryIdx]
+                    pa = tuple(map(int, ka.pt))
+                    sa = int(np.round(ka.size))
+                    kb = self.kpts[m.trainIdx]
+                    pb = tuple(map(int, kb.pt))
+                    sb = int(np.round(kb.size))
+                    
+                    angle = np.arctan2(pb[1] - pa[1], pb[0] - pa[0])
+                    if angle < 0:
+                        angle += np.pi
+                    
+                    hsv[0, 0, 0] = angle / np.pi * 180
+                    hsv[0, 0, 1] = 255
+                    hsv[0, 0, 2] = m.distance / matching_val * 255
+                    rgb = cv.cvtColor(hsv.astype(np.uint8), cv.COLOR_HSV2BGR)
+                    rgb = tuple([int(x) for x in rgb[0, 0]])
+                    
+                    cv.circle(output, pa, sa, rgb, 1, cv.LINE_AA)
+                    cv.circle(output, pb, sb, rgb, 1, cv.LINE_AA)
+                    if not nolines:
+                        cv.line(output, pa, pb, rgb, 1, cv.LINE_AA)
+
+        self.viewer.update_processed(output)
