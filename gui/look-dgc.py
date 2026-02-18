@@ -38,6 +38,7 @@ from plots import PlotsWidget
 from quality import QualityWidget
 from reverse import ReverseWidget
 from space import SpaceWidget
+from multiplecompression import MultipleCompressionWidget
 
 # Try to import tensorflow-dependent modules
 try:
@@ -416,6 +417,8 @@ class MainWindow(QMainWindow):
                     tool_widget = ElaWidget(self.image)
                 elif tool == 3:
                     tool_widget = GhostmapWidget(self.filename, self.image)
+                elif tool == 2:
+                     tool_widget = MultipleCompressionWidget(self.filename, self.image)
             elif group == 7:
                 if tool == 0:
                     tool_widget = ContrastWidget(self.image)
