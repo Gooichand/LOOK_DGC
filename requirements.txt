@@ -1,0 +1,7 @@
+PySide6
+opencv-python
+sewar
+python-magic-bin; platform_system=="Windows"
+joblib
+PyWavelets
+reportlab
