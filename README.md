@@ -186,6 +186,8 @@ LOOK-DGC supports generating detailed PDF reports from analysis tools that provi
 To generate a PDF report, select the desired analysis tools and use the "Generate Report" option from the File menu.
 
 ---
+<img width="4799" height="8336" alt="NotebookLM Mind Map" src="https://github.com/user-attachments/assets/9c579802-18bb-40c0-854c-88a21a36e555" />
+
 ---
 
 ## 📁 Project Structure
