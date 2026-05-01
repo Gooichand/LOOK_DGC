@@ -1,5 +1,4 @@
-<p align="center">
-  <img src="logo/look-dgc.png" width="600px" alt="LOOK-DGC" />
+## This proejct is an part of my main proejct EV-DGC https://github.com/Gooichand/blockchain-evidence
   
   <br><b>🔍 An Open Source Digital Image Forensics Toolkit</b>
 </p>
