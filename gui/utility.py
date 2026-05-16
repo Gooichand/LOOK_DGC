@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 from time import time
 from math import log10
@@ -401,18 +402,34 @@ def exiftool_exe():
 
 def butter_exe():
     if sys.platform.startswith("linux"):
-        return "butteraugli/linux/butteraugli"
-    if sys.platform.startswith("win32"):
+        path = "butteraugli/linux/butteraugli"
+    elif sys.platform.startswith("win32"):
+        path = "butteraugli/windows/butteraugli.exe"
+    else:
         return None
-    return None
+
+    if os.path.isfile(path):
+        return path
+
+    # Fallback: check system PATH
+    name = "butteraugli.exe" if sys.platform.startswith("win32") else "butteraugli"
+    return shutil.which(name)
 
 
 def ssimul_exe():
     if sys.platform.startswith("linux"):
-        return "ssimulacra/linux/ssimulacra"
-    if sys.platform.startswith("win32"):
+        path = "ssimulacra/linux/ssimulacra"
+    elif sys.platform.startswith("win32"):
+        path = "ssimulacra/windows/ssimulacra.exe"
+    else:
         return None
-    return None
+
+    if os.path.isfile(path):
+        return path
+
+    # Fallback: check system PATH
+    name = "ssimulacra.exe" if sys.platform.startswith("win32") else "ssimulacra"
+    return shutil.which(name)
 
 
 class ParamSlider(QWidget):

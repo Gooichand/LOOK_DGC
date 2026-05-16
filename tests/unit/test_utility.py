@@ -174,3 +174,121 @@ def test_norm_mat(sample_image):
     norm_3d = norm_mat(matrix_2d, to_bgr=True)
     assert len(norm_3d.shape) == 3
     assert norm_3d.shape[2] == 3
+
+
+# ── Tests for external tool exe helpers ──────────────────────────────
+
+from utility import butter_exe, ssimul_exe, exiftool_exe
+
+
+class TestButterExe:
+    """Tests for butter_exe() covering bundled binary, PATH fallback, and not-found."""
+
+    def test_linux_bundled_binary_found(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=True):
+            mock_sys.platform = "linux"
+            result = butter_exe()
+            assert result == "butteraugli/linux/butteraugli"
+
+    def test_win32_bundled_binary_found(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=True):
+            mock_sys.platform = "win32"
+            result = butter_exe()
+            assert result == "butteraugli/windows/butteraugli.exe"
+
+    def test_win32_path_fallback(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=False), \
+             patch("utility.shutil.which", return_value="C:\\tools\\butteraugli.exe"):
+            mock_sys.platform = "win32"
+            result = butter_exe()
+            assert result == "C:\\tools\\butteraugli.exe"
+
+    def test_linux_path_fallback(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=False), \
+             patch("utility.shutil.which", return_value="/usr/bin/butteraugli"):
+            mock_sys.platform = "linux"
+            result = butter_exe()
+            assert result == "/usr/bin/butteraugli"
+
+    def test_not_found_returns_none(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=False), \
+             patch("utility.shutil.which", return_value=None):
+            mock_sys.platform = "win32"
+            assert butter_exe() is None
+
+    def test_unsupported_platform_returns_none(self):
+        with patch("utility.sys") as mock_sys:
+            mock_sys.platform = "darwin"
+            assert butter_exe() is None
+
+
+class TestSsimulExe:
+    """Tests for ssimul_exe() covering bundled binary, PATH fallback, and not-found."""
+
+    def test_linux_bundled_binary_found(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=True):
+            mock_sys.platform = "linux"
+            result = ssimul_exe()
+            assert result == "ssimulacra/linux/ssimulacra"
+
+    def test_win32_bundled_binary_found(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=True):
+            mock_sys.platform = "win32"
+            result = ssimul_exe()
+            assert result == "ssimulacra/windows/ssimulacra.exe"
+
+    def test_win32_path_fallback(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=False), \
+             patch("utility.shutil.which", return_value="C:\\tools\\ssimulacra.exe"):
+            mock_sys.platform = "win32"
+            result = ssimul_exe()
+            assert result == "C:\\tools\\ssimulacra.exe"
+
+    def test_not_found_returns_none(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.isfile", return_value=False), \
+             patch("utility.shutil.which", return_value=None):
+            mock_sys.platform = "linux"
+            assert ssimul_exe() is None
+
+    def test_unsupported_platform_returns_none(self):
+        with patch("utility.sys") as mock_sys:
+            mock_sys.platform = "darwin"
+            assert ssimul_exe() is None
+
+
+class TestExiftoolExe:
+    """Tests for exiftool_exe() to ensure the existing function keeps working."""
+
+    def test_linux_found(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.exists", return_value=True):
+            mock_sys.platform = "linux"
+            result = exiftool_exe()
+            assert result == "pyexiftool/exiftool/linux/exiftool"
+
+    def test_win32_found(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.exists", return_value=True):
+            mock_sys.platform = "win32"
+            result = exiftool_exe()
+            assert result == "pyexiftool/exiftool/windows/exiftool(-k).exe"
+
+    def test_not_found_returns_none(self):
+        with patch("utility.sys") as mock_sys, \
+             patch("utility.os.path.exists", return_value=False):
+            mock_sys.platform = "win32"
+            assert exiftool_exe() is None
+
+    def test_unsupported_platform(self):
+        with patch("utility.sys") as mock_sys:
+            mock_sys.platform = "darwin"
+            assert exiftool_exe() is None
